@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST, require_GET
-from .models import Article
-from .forms import ArticleForm
+from .models import Article, Comment
+from .forms import ArticleForm, CommentForm
 
 
 @require_GET
@@ -15,7 +15,13 @@ def index(request):
 def detail(request, article_pk):
     # 사용자가 url 에 적어보낸 article_pk 를 통해 디테일 페이지를 보여준다.
     article = get_object_or_404(Article, pk=article_pk)
-    context = {'article': article}
+    comment_form = CommentForm()
+    comments = Comment.objects.all()
+    context = {
+        'article': article,
+        'comment_form': comment_form,
+        'comments': comments,
+    }
     return render(request, 'articles/detail.html', context)
 
 
@@ -52,3 +58,21 @@ def delete(request, article_pk):
     article = get_object_or_404(Article, pk=article_pk)
     article.delete()
     return redirect('articles:index')
+
+
+# 댓글을 생성하는 요청을 받는다.
+@require_POST
+def comments_create(request, article_pk):
+    form = CommentForm(request.POST)
+    if form.is_valid():
+        comment = form.save(commit=False)
+        comment.article_id = article_pk
+        comment.save()
+    return redirect('articles:detail', article_pk)
+
+
+@require_POST
+def comments_delete(request, article_pk, comment_pk):
+    comment = get_object_or_404(Comment, pk=comment_pk)
+    comment.delete()
+    return redirect('articles:detail', article_pk)
